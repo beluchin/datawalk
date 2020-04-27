@@ -3,20 +3,13 @@ package typewalk;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.function.Function;
+import java.util.function.Consumer;
 
 @UtilityClass
 public final class TypeWalk {
-    public static <T> T typeWalk(Class<T> type, Function<Class<?>, T> fn) {
-        //noinspection unchecked
-        return (T) TypeUnsafe.typeWalk(type, fn);
-    }
-
-    @UtilityClass
-    public static final class TypeUnsafe {
-        public static Object typeWalk(Class<?> type, Function<Class<?>, ?> fn) {
-            val cursor = Cursor.of(type);
-            return fn.apply(cursor.type);
-        }
+    public static void typeWalk(Class<?> type, TypeWalkConsumer consumer) {
+        val cursor = Cursor.of(type);
+        cursor.continued(leaf -> consumer.consumeLeaf(),
+                         __ -> {throw new UnsupportedOperationException();});
     }
 }

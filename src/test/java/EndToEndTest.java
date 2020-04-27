@@ -1,19 +1,20 @@
 import lombok.val;
 import org.junit.jupiter.api.Test;
+import typewalk.TypeWalkConsumer;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static typewalk.TypeWalk.TypeUnsafe.typeWalk;
-import static utils.Random.randomPrimitive;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
+import static typewalk.TypeWalk.typeWalk;
 import static utils.Random.randomPrimitiveType;
 
 final class EndToEndTest {
     @Test
-    void primitives() {
-        val type = randomPrimitiveType();
+    void callsConsumerOnce() {
+        val consumer = mock(TypeWalkConsumer.class);
 
-        assertThat(
-                typeWalk(type, x -> randomPrimitive(type))
-        )
-                .isNotNull();
+        typeWalk(randomPrimitiveType(), consumer);
+
+        verify(consumer, times(1)).consumeLeaf();
     }
 }

@@ -1,23 +1,30 @@
 package typewalk;
 
+import lang.Either;
 import lombok.Data;
 
 import javax.annotation.Nullable;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @Data
 final class Cursor {
-    @Nullable final Cursor toAdvance;
-    final Class<?> type;
+    final Either<LeafCursor, InnerNodeCursor> either;
+    @Nullable final Cursor next;
 
     Optional<Cursor> advance() {
-        return Optional.ofNullable(toAdvance);
+        return Optional.ofNullable(next);
+    }
+
+    void continued(Consumer<LeafCursor> leafConsumer,
+                   Consumer<InnerNodeCursor> innerNodeCursorConsumer) {
+        either.continued(leafConsumer, innerNodeCursorConsumer);
     }
 
     static Cursor of(Class<?> type) {
         if (type.isPrimitive()) {
-            return new Cursor(null, type);
+            return new Cursor(Either.first(new LeafCursor(type)), null);
         }
-        return new Cursor(new Cursor(null, null), type);
+        throw new UnsupportedOperationException();
     }
 }
