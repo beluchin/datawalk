@@ -22,7 +22,7 @@ final class CursorTest {
     void ofSimpleWrapperAdvancesOnce() {
         @Data
         class Wrapper {
-            int t;
+            public int t;
         }
         val cursor = Cursor.of(Wrapper.class);
 
@@ -33,8 +33,8 @@ final class CursorTest {
     void ofSimpleAggregateAdvancesTwice() {
         @Data
         class Aggregate {
-            int t;
-            char c;
+            public int t;
+            public char c;
         }
         val cursor = Cursor.of(Aggregate.class);
 
