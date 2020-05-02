@@ -8,6 +8,13 @@ import lombok.Data;
 public final class Neil<T> {
     public final ImmutableList<T> list;
 
+    public Neil<T> addAll(ImmutableList<T> list) {
+        return new Neil<>(ImmutableList.<T>builder()
+                                  .addAll(this.list)
+                                  .addAll(list)
+                                  .build());
+    }
+
     public T last() {
         return list.get(list.size() - 1);
     }
