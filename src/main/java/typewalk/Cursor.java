@@ -1,75 +1,96 @@
 package typewalk;
 
 import com.google.common.collect.ImmutableList;
-import lang.Either;
-import lang.Neil;
-import lang.Streams;
-import lombok.Data;
 import lombok.val;
 
+import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Optional;
 
+import static java.util.Arrays.asList;
 import static java.util.stream.Stream.iterate;
+import static lang.Lists.last;
+import static lang.Streams.takeWhile;
 
-@Data
 public final class Cursor {
-    @Data
-    private static final class NodeExceptRoot {
-        final Neil<Class> branch; // root at 0, parent's last
-        final int index;
+    private final Class<?> root;
+    private final ImmutableList<Field> path; // sorted by distance from root
 
-        Cursor advance() {
-            return index != lastPropertyIndex(parent())
-                    ? newNodeCursor(new NodeExceptRoot(branch, index + 1))
-                    : newRootCursor();
-        }
-
-        private Class<?> parent() {
-            return branch.last();
-        }
-
-        private static int lastPropertyIndex(Class<?> type) {
-            return type.getFields().length - 1;
-        }
+    private Cursor(Class<?> root, ImmutableList<Field> path) {
+        this.root = root;
+        this.path = path;
     }
 
-    @Data
-    private static final class Root {}
-
-    private final Either<Root, NodeExceptRoot> either;
-
     public Optional<Cursor> advance() {
-        return Optional.ofNullable(either.join(__ -> null,
-                                               NodeExceptRoot::advance));
+        return path.isEmpty()
+                ? Optional.empty()
+                : Optional.of(new Cursor(root, nextPath()));
     }
 
     public static Cursor of(Class<?> type) {
-        return type.isPrimitive()
-                ? newRootCursor()
-                : newFirstDepthNode(type);
+        val branch = leftMostBranch(type);
+        return new Cursor(type, branch);
     }
 
-    private static Neil<Class> firstDepthFirstBranch(Class<?> type) {
-        val builder = ImmutableList.<Class>builder();
-        Streams.<Class>takeWhile(t -> !t.isPrimitive(),
-                                 iterate(type, Cursor::firstProperty))
+    private Optional<Field> findNextSibling() {
+        val parent = thisProperty().getDeclaringClass();
+        val properties = properties(parent);
+        val index = properties.indexOf(thisProperty());
+        return index < properties.size() - 1
+                ? Optional.of(properties.get(index + 1))
+                : Optional.empty();
+    }
+
+    private ImmutableList<Field> leftMostBranchThrough(Field sibling) {
+        return ImmutableList.<Field>builder()
+                .addAll(pathMinusLast())
+                .add(sibling)
+                .addAll(leftMostBranch(sibling.getType()))
+                .build();
+    }
+
+    private ImmutableList<Field> nextPath() {
+        return findNextSibling()
+                .map(this::leftMostBranchThrough)
+                .orElse(pathToParent());
+    }
+
+    private ImmutableList<Field> pathMinusLast() {
+        return path.subList(0, path.size() - 1);
+    }
+
+    private ImmutableList<Field> pathToParent() {
+        return pathMinusLast();
+    }
+
+    private Field thisProperty() {
+        return last(path);
+    }
+
+    private static Optional<Field> findFirstProperty(Class<?> type) {
+        return isLeaf(type)
+                ? Optional.empty()
+                : Optional.of(type.getFields()[0]);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static Optional<Field> findFirstProperty(Optional<Field> opt) {
+        return opt.flatMap(field -> findFirstProperty(field.getType()));
+    }
+
+    private static boolean isLeaf(Class<?> c) {
+        return c.isPrimitive();
+    }
+
+    private static ImmutableList<Field> leftMostBranch(Class<?> type) {
+        val builder = ImmutableList.<Field>builder();
+        takeWhile(Optional::isPresent, iterate(findFirstProperty(type), Cursor::findFirstProperty))
+                .map(Optional::get)
                 .forEach(builder::add);
-        return Neil.of(builder.build());
+        return builder.build();
     }
 
-    private static Class<?> firstProperty(Class<?> type) {
-        return type.getFields()[0].getType();
-    }
-
-    private static Cursor newFirstDepthNode(Class<?> type) {
-        return new Cursor(Either.second(new NodeExceptRoot(firstDepthFirstBranch(type), 0)));
-    }
-
-    private static Cursor newNodeCursor(NodeExceptRoot node) {
-        return new Cursor(Either.second(node));
-    }
-
-    private static Cursor newRootCursor() {
-        return new Cursor(Either.first(new Root()));
+    private static List<Field> properties(Class<?> type) {
+        return asList(type.getFields());
     }
 }

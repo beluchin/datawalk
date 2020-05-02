@@ -44,7 +44,7 @@ final class CursorTest {
     }
 
     @Test
-    void _4_ofNestedAggregate() {
+    void _4_ofNestedAggregate_1() {
         @Data
         class Inner {
             public int t;
@@ -60,11 +60,27 @@ final class CursorTest {
         assertThat(advances(cursor)).isEqualTo(3);
     }
 
+    @Test
+    void _5_ofNestedAggregate_2() {
+        @Data
+        class Inner {
+            public int t;
+        }
+        @Data
+        class Outer {
+            public Inner inner;
+            public int t;
+        }
+
+        val cursor = Cursor.of(Outer.class);
+
+        assertThat(advances(cursor)).isEqualTo(3);
+    }
+
     private static long advances(Cursor c) {
         return takeWhile(Optional::isPresent,
                          iterate(c.advance(),
                                  opt -> opt.flatMap(Cursor::advance)))
                 .count();
     }
-
 }
