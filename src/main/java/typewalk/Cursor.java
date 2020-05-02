@@ -82,12 +82,6 @@ public final class Cursor {
         return c.isPrimitive();
     }
 
-<<<<<<< HEAD
-=======
-    /**
-     * @return - does not include the leaf ie. it can be empty if type is a leaf.
-     */
->>>>>>> e82441ee062e9fe237b68a1e466bdbe98ba9c2dc
     private static ImmutableList<Field> leftMostBranch(Class<?> type) {
         val builder = ImmutableList.<Field>builder();
         takeWhile(Optional::isPresent, iterate(findFirstProperty(type), Cursor::findFirstProperty))
